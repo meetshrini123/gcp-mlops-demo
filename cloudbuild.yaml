@@ -8,29 +8,20 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_IMAGE_NAME}:$COMMIT_SHA']
 
-# 3. Trigger the Vertex AI Pipeline
+# 3. Trigger the Vertex AI Custom Job (NEW COMMAND)
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: 'gcloud'
   args:
     - 'ai'
-    - 'platform'
-    - 'jobs'
-    - 'submit'
-    - 'training'
-    - 'mlops_job_${SHORT_SHA}'
-    - '--region'
-    - '${_REGION}'
-    - '--master-image-uri'
-    - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
-    - '--scale-tier'
-    - 'CUSTOM'
-    - '--master-machine-type'
-    - 'g2-standard-8'
-    # This is where you specify the GPU for the GKE node
-    - '--master-accelerator'
-    - 'type=nvidia-l4,count=1'
+    - 'custom-jobs'
+    - 'create'
+    - '--region=${_REGION}'
+    - '--display-name=mlops-job-${SHORT_SHA}'
+    - '--worker-pool-spec=machine-type=g2-standard-4,replica-count=1,container-image-uri=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_IMAGE_NAME}:${COMMIT_SHA},accelerator-type=NVIDIA_L4,accelerator-count=1'
+
 # Store the image name for other steps
 images:
 - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
+
 options:
   logging: CLOUD_LOGGING_ONLY
